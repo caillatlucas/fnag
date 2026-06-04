@@ -219,7 +219,29 @@ class EnemyManager {
         if (cat.location !== "dead" && cat.config && cat.config.audio && cat.config.audio.move) {
             audioSystem.play('move_' + cat.id, cat.config.audio.move, false, volumeMultiplier);
         }
-        
+
+        // Glitch statique si le chat arrive sur la caméra actuellement regardée
+        if (
+            this.game.isCameraOpen &&
+            cat.location === this.game.ui.currentCam &&
+            cat.location !== 'office' &&
+            cat.location !== 'dead'
+        ) {
+            if (typeof audioSystem !== 'undefined') {
+                audioSystem.play('hacker_static', 'assets/audio/sfx/hacker_static.mp3', false);
+                // Arrêter après une courte durée pour ne pas boucler indéfiniment
+                setTimeout(() => {
+                    // Ne couper que si Coupain n'est pas aussi sur cette cam (il gère sa propre boucle)
+                    const isCoupainHere = Object.values(this.catStates).some(
+                        c => c.id === 'coupain' && c.location === this.game.ui.currentCam && !c.isDead
+                    );
+                    if (!isCoupainHere) {
+                        audioSystem.stop('hacker_static', 'assets/audio/sfx/hacker_static.mp3');
+                    }
+                }, 800);
+            }
+        }
+
         this.game.ui.updateCameraView(prevLoc, cat.location);
         this.game.ui.updateOfficeThreats(this.catStates);
     }
@@ -250,6 +272,11 @@ class EnemyManager {
         Object.keys(this.catStates).forEach(key => {
             const cat = this.catStates[key];
             if (cat.location === "office" && !cat.isDead) {
+                // Mochi est invincible au pistolet
+                if (cat.config.immortal) {
+                    console.log(`${cat.name} est invincible au pistolet !`);
+                    return;
+                }
                 cat.isDead = true;
                 cat.location = "dead";
                 this.notifyMove(cat);
@@ -257,6 +284,58 @@ class EnemyManager {
             }
         });
         return killed;
+    }
+
+    /**
+     * Fait apparaitre Mochi directement dans le bureau.
+     * Appelé par la touche M ou par scheduleMonchiSpawn.
+     */
+    spawnMochi() {
+        const mochiConfig = this.config.cats['mochi'];
+        if (!mochiConfig) {
+            console.warn('Mochi non défini dans config.json');
+            return;
+        }
+
+        // Si Mochi est déjà actif, ne pas respawner
+        if (this.catStates['mochi'] && !this.catStates['mochi'].isDead) {
+            console.log('Mochi est déjà là !');
+            return;
+        }
+
+        // Spawn dans une caméra aléatoire (pas directement dans le bureau)
+        const cameras = Object.keys(this.paths).filter(loc => loc.startsWith('cam'));
+        const startLoc = cameras[Math.floor(Math.random() * cameras.length)];
+
+        this.catStates['mochi'] = {
+            id: 'mochi',
+            name: mochiConfig.name,
+            location: startLoc,
+            aggression: 20, // Très agressif, se déplace rapidement vers le bureau
+            config: mochiConfig,
+            moveTimer: 0,
+            attackTimer: 0,
+            isDead: false
+        };
+
+        console.log(`Mochi a apparu en ${startLoc} !`);
+        this.game.ui.updateOfficeThreats(this.catStates);
+        this.game.ui.updateCameraView();
+    }
+
+    /**
+     * Planifie l'apparition de Mochi à un moment aléatoire pendant la nuit.
+     */
+    scheduleMonchiSpawn() {
+        const nightDurationMs = this.game.config.settings.nightDurationSeconds * 1000;
+        // Apparaître entre 20% et 80% de la nuit
+        const spawnDelay = nightDurationMs * (0.2 + Math.random() * 0.6);
+        console.log(`Mochi va apparaitre dans ${Math.round(spawnDelay / 1000)}s`);
+        setTimeout(() => {
+            if (this.game.isRunning && !this.game.isGameOver) {
+                this.spawnMochi();
+            }
+        }, spawnDelay);
     }
 
     getCatAtLocation(locationId) {

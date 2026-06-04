@@ -127,6 +127,22 @@
         "move": "assets/audio/sfx/move.mp3",
         "jumpscare": "assets/audio/jumpscare/scream.mp3"
       }
+    },
+    "mochi": {
+      "name": "Mochi",
+      "startCamera": "cam3",
+      "aggressionLevel": [20, 20, 20, 20, 20],
+      "immortal": true,
+      "noCustomNight": true,
+      "images": {
+        "sprite": "assets/images/cats/mochi.png",
+        "jumpscare": "assets/images/cats/mochi_jump.png",
+        "icon": "assets/images/ui/choupette_icon.png"
+      },
+      "audio": {
+        "move": "assets/audio/sfx/move.mp3",
+        "jumpscare": "assets/audio/jumpscare/scream.mp3"
+      }
     }
   }
 }

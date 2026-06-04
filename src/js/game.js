@@ -129,6 +129,14 @@ class Game {
             this.pendingStart = { activeCats, diffMultiplier };
         } else {
             this.enemyManager.init(this.currentNight, activeCats, diffMultiplier);
+            
+            // Mochi : 1% de chance d'apparaitre à chaque nuit (hors custom night)
+            if (!this.ui.isCustomNight && this.config.cats['mochi']) {
+                if (Math.random() < 0.01) {
+                    this.enemyManager.scheduleMonchiSpawn();
+                }
+            }
+
             this.ui.setTurnAround(false);
             this.ui.showView('office');
             this.ui.updateSleepOverlay(this.sleep);
@@ -139,8 +147,7 @@ class Game {
             if (showBonus) {
                 this.ui.showBonusSelection();
             } else {
-                this.lastTime = performance.now();
-                requestAnimationFrame((t) => this.loop(t));
+                this._startLoop();
             }
         }
     }
@@ -152,6 +159,14 @@ class Game {
 
         this.ui.hideNewspaper();
         this.enemyManager.init(this.currentNight, activeCats, diffMultiplier);
+
+        // Mochi : 1% de chance d'apparaitre à chaque nuit (hors custom night)
+        if (!this.ui.isCustomNight && this.config.cats['mochi']) {
+            if (Math.random() < 0.01) {
+                this.enemyManager.scheduleMonchiSpawn();
+            }
+        }
+
         this.ui.setTurnAround(false);
         this.ui.showView('office');
         this.ui.updateSleepOverlay(this.sleep);
@@ -162,8 +177,7 @@ class Game {
         if (showBonus) {
             this.ui.showBonusSelection();
         } else {
-            this.lastTime = performance.now();
-            requestAnimationFrame((t) => this.loop(t));
+            this._startLoop();
         }
     }
 
@@ -371,10 +385,39 @@ class Game {
     shootGun() {
         if (this.bullets <= 0) return;
         
-        // Prevent shooting if no cat is in the office
-        const hasCat = Object.values(this.enemyManager.catStates).some(c => c.location === "office" && !c.isDead);
-        if (!hasCat) {
+        // Prevent shooting if no MORTAL cat is in the office
+        // (Mochi is immortal and can't be killed by the gun)
+        const hasMortalCat = Object.values(this.enemyManager.catStates).some(
+            c => c.location === "office" && !c.isDead && !c.config.immortal
+        );
+        const hasAnyCat = Object.values(this.enemyManager.catStates).some(
+            c => c.location === "office" && !c.isDead
+        );
+
+        if (!hasAnyCat) {
             console.log("Personne à tirer !");
+            return;
+        }
+
+        if (!hasMortalCat) {
+            // Seul Mochi est là : le coup de feu part mais ne le tue pas
+            console.log("Mochi est invincible, la balle ne fait rien !");
+            if (typeof audioSystem !== 'undefined') {
+                audioSystem.play('gun', 'assets/audio/sfx/gunshot.mp3');
+            }
+            this.ui.playShootAnimation();
+            // Muzzle flash sans dépenser de balle
+            const officeViewMochi = document.getElementById('office-view');
+            for (let i = 0; i < 15; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle muzzle-particle';
+                p.style.width = (Math.random() * 15 + 5) + 'px';
+                p.style.height = p.style.width;
+                p.style.bottom = (20 + Math.random() * 10) + '%';
+                p.style.right = (15 + Math.random() * 15) + '%';
+                if (officeViewMochi) officeViewMochi.appendChild(p);
+                setTimeout(() => p.remove(), 200);
+            }
             return;
         }
         
@@ -452,10 +495,31 @@ class Game {
         if (this.currentNight < this.config.settings.nights) {
             localStorage.setItem('fnag_night', this.currentNight + 1);
             localStorage.setItem('fnag_bullets', this.bullets);
-            setTimeout(() => {
+
+            // Attendre que le son de victoire soit fini (+ marge de 2s) avant de passer
+            const winSoundKey = 'win_assets/audio/sfx/6am.mp3';
+            const winSound = typeof audioSystem !== 'undefined' ? audioSystem.sounds[winSoundKey] : null;
+
+            const proceedToNextNight = () => {
                 this.currentNight++;
                 this.startNewGame(false);
-            }, 7000); // Wait 7s before next night
+            };
+
+            if (winSound && winSound.duration && isFinite(winSound.duration)) {
+                // Attendre la fin du son + 2 secondes de pause
+                const soundDurationMs = winSound.duration * 1000;
+                const waitMs = soundDurationMs + 2000;
+                setTimeout(proceedToNextNight, waitMs);
+            } else {
+                // Fallback : écouter l'événement 'ended' ou 8s max
+                const fallbackTimer = setTimeout(proceedToNextNight, 8000);
+                if (winSound) {
+                    winSound.addEventListener('ended', () => {
+                        clearTimeout(fallbackTimer);
+                        setTimeout(proceedToNextNight, 2000);
+                    }, { once: true });
+                }
+            }
         } else {
             // Beat the game
             setTimeout(() => {
@@ -511,13 +575,16 @@ class Game {
         this.isGameOver = true;
         this.isRunning = false;
 
-        this.ui.setGameOverReason("ARRÊT CARDIAQUE (OVERDOSE DE CAFÉINE)");
-        this.ui.showView('gameOver');
-
         if (typeof audioSystem !== 'undefined') {
             audioSystem.stopAmbiance();
-            audioSystem.play('overdose', 'assets/audio/sfx/power_down.mp3');
+            audioSystem.play('overdose', 'assets/audio/sfx/avc.mp3');
         }
+
+        // Attendre 4 secondes après le son avant d'afficher l'écran de mort
+        setTimeout(() => {
+            this.ui.setGameOverReason("ARRÊT CARDIAQUE (OVERDOSE DE CAFÉINE)");
+            this.ui.showView('gameOver');
+        }, 4000);
     }
 
     triggerSleepOutage() {
@@ -595,6 +662,25 @@ class Game {
 
         // Super lure: change cooldown (handled in EnemyManager/UI)
         this.ui.hideBonusSelection();
+        this._startLoop();
+    }
+
+    /**
+     * Démarre le game loop et verrouille la caméra 3 secondes au début de la nuit.
+     */
+    _startLoop() {
+        // Verrouiller le bouton caméra au lancement
+        const btn = this.ui.btnMonitorToggle;
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.4';
+            setTimeout(() => {
+                if (!this.isGameOver && this.isRunning) {
+                    btn.disabled = false;
+                    btn.style.opacity = '';
+                }
+            }, 3000);
+        }
         this.lastTime = performance.now();
         requestAnimationFrame((t) => this.loop(t));
     }

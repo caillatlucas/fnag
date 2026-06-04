@@ -290,6 +290,11 @@ class UI {
                     if (this.views.office.classList.contains('active') && !this.isTurnedAround) {
                         this.game.drinkCoffee();
                     }
+                } else if (e.key.toLowerCase() === 'm') {
+                    // Touche M : faire spawner Mochi dans le bureau
+                    if (this.game && this.game.enemyManager) {
+                        this.game.enemyManager.spawnMochi();
+                    }
                 } else if (['1', '2', '3', '4', '&', 'é', '"', "'"].includes(e.key)) {
                     if (this.views.camera.classList.contains('active')) {
                         let camNum = e.key;
@@ -379,6 +384,9 @@ class UI {
                 this.menuCatsContainer.appendChild(img);
             }
             
+            // Mochi ne peut pas être sélectionné dans le custom night
+            if (cat.noCustomNight) return;
+
             // Build Settings Toggle
             const label = document.createElement('label');
             label.className = 'toggle-item';
@@ -492,6 +500,7 @@ class UI {
             audioSystem.preload('ui_click', 'assets/audio/sfx/ui_click.mp3');
             audioSystem.preload('ui_hover', 'assets/audio/sfx/ui_hover.mp3');
             audioSystem.preload('hacker_static', 'assets/audio/sfx/hacker_static.mp3');
+            audioSystem.preload('overdose', 'assets/audio/sfx/avc.mp3');
             if (config.cats) {
                 Object.keys(config.cats).forEach(catId => {
                     const cat = config.cats[catId];
@@ -987,6 +996,11 @@ class UI {
         if (cat.config.images.jumpscare) {
             img.src = cat.config.images.jumpscare;
         }
+
+        // Static à l'écran de mort
+        if (typeof audioSystem !== 'undefined') {
+            audioSystem.play('hacker_static', 'assets/audio/sfx/hacker_static.mp3', false);
+        }
         
         if (cat.config.audio.jumpscare) {
             audioSystem.play('jump', cat.config.audio.jumpscare);
@@ -1033,21 +1047,108 @@ class UI {
         }, 300);
     }
 
+    _initClockMarks() {
+        const svgNS = "http://www.w3.org/2000/svg";
+        const hourMarksG = document.getElementById('clock-hour-marks');
+        const minMarksG = document.getElementById('clock-min-marks');
+        const labelsG = document.getElementById('clock-hour-labels');
+        if (!hourMarksG) return;
+        
+        // Clear previous
+        hourMarksG.innerHTML = '';
+        minMarksG.innerHTML = '';
+        labelsG.innerHTML = '';
+
+        const cx = 100, cy = 100, r = 88;
+
+        for (let i = 0; i < 60; i++) {
+            const angle = (i / 60) * 2 * Math.PI - Math.PI / 2;
+            const isHour = (i % 5 === 0);
+            const outerR = r;
+            const innerR = isHour ? r - 12 : r - 6;
+            const x1 = cx + outerR * Math.cos(angle);
+            const y1 = cy + outerR * Math.sin(angle);
+            const x2 = cx + innerR * Math.cos(angle);
+            const y2 = cy + innerR * Math.sin(angle);
+            const mark = document.createElementNS(svgNS, 'line');
+            mark.setAttribute('x1', x1);
+            mark.setAttribute('y1', y1);
+            mark.setAttribute('x2', x2);
+            mark.setAttribute('y2', y2);
+            mark.setAttribute('stroke', isHour ? '#fff' : 'rgba(255,255,255,0.4)');
+            mark.setAttribute('stroke-width', isHour ? '2.5' : '1');
+            if (isHour) {
+                hourMarksG.appendChild(mark);
+                // Chiffre de l'heure
+                const hourNum = i / 5 === 0 ? 12 : i / 5;
+                const labelR = r - 22;
+                const lx = cx + labelR * Math.cos(angle);
+                const ly = cy + labelR * Math.sin(angle);
+                const text = document.createElementNS(svgNS, 'text');
+                text.setAttribute('x', lx);
+                text.setAttribute('y', ly);
+                text.textContent = hourNum;
+                labelsG.appendChild(text);
+            } else {
+                minMarksG.appendChild(mark);
+            }
+        }
+    }
+
+    _setClockTime(hours, minutes, seconds) {
+        const hourHand = document.getElementById('clock-hand-hour');
+        const minHand = document.getElementById('clock-hand-min');
+        const secHand = document.getElementById('clock-hand-sec');
+        if (!hourHand) return;
+
+        const cx = 100, cy = 100;
+        const hourLen = 45; // distance du centre à la pointe
+        const minLen = 65;
+        const secLen = 70;
+        const secTailLen = 15;
+
+        // Angles (en radians, 0 = haut = -PI/2)
+        const hAngle = ((hours % 12) / 12 + minutes / 720) * 2 * Math.PI - Math.PI / 2;
+        const mAngle = (minutes / 60 + seconds / 3600) * 2 * Math.PI - Math.PI / 2;
+        const sAngle = (seconds / 60) * 2 * Math.PI - Math.PI / 2;
+
+        hourHand.setAttribute('x2', cx + hourLen * Math.cos(hAngle));
+        hourHand.setAttribute('y2', cy + hourLen * Math.sin(hAngle));
+
+        minHand.setAttribute('x2', cx + minLen * Math.cos(mAngle));
+        minHand.setAttribute('y2', cy + minLen * Math.sin(mAngle));
+
+        // Aiguille des secondes (queue opposée + pointe)
+        secHand.setAttribute('x1', cx - secTailLen * Math.cos(sAngle));
+        secHand.setAttribute('y1', cy - secTailLen * Math.sin(sAngle));
+        secHand.setAttribute('x2', cx + secLen * Math.cos(sAngle));
+        secHand.setAttribute('y2', cy + secLen * Math.sin(sAngle));
+    }
+
     playWinAnimation(nightNum) {
         this.showView('win');
         const winTime = document.getElementById('win-time');
+        const winAmpm = document.getElementById('win-ampm');
         const winSubtitle = document.getElementById('win-subtitle');
         document.getElementById('win-night-num').innerText = nightNum;
-        
-        winTime.innerText = "5:59 AM";
+
+        winTime.innerText = '5:59';
+        if (winAmpm) winAmpm.innerText = 'AM';
         winSubtitle.classList.add('hidden');
-        
+        winTime.classList.remove('alarm-flash');
+
+        // Jouer le son de victoire
         if (typeof audioSystem !== 'undefined') audioSystem.play('win', 'assets/audio/sfx/6am.mp3');
-        
+
+        // Après 2s : passage à 6:00 avec flash LED
         setTimeout(() => {
-            winTime.innerText = "6:00 AM";
+            winTime.innerText = '6:00';
+            // Flash des digits à la manière d'un vrai réveil
+            void winTime.offsetWidth; // reflow
+            winTime.classList.add('alarm-flash');
+            setTimeout(() => winTime.classList.remove('alarm-flash'), 900);
             winSubtitle.classList.remove('hidden');
-        }, 2000); // 2 seconds tension build
+        }, 2000);
     }
 
     updateSleepOverlay(sleep) {
