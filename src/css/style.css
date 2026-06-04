@@ -1,0 +1,652 @@
+:root {
+    --main-bg-color: #000;
+    --text-color: #fff;
+    --accent-color: #ff0000;
+    --font-family: 'VT323', monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    background-color: var(--main-bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 1920px;
+    max-height: 1080px;
+    margin: 0 auto;
+    background-color: #111;
+    overflow: hidden;
+}
+
+/* Views */
+.view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.active {
+    display: block;
+}
+
+.active-overlay {
+    background-color: rgba(0,0,0,0.9);
+    z-index: 100;
+}
+
+#main-menu {
+    background-color: #000;
+}
+
+.menu-left-panel {
+    position: absolute;
+    top: 10%;
+    left: 8%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    z-index: 50;
+}
+
+.menu-title {
+    font-size: 5rem !important;
+    text-align: left;
+    line-height: 1.1;
+    text-shadow: none !important;
+    margin-bottom: 3rem !important;
+}
+
+.menu-options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.menu-btn {
+    text-align: left !important;
+    position: relative;
+    padding-left: 0;
+}
+
+.menu-btn .selector {
+    opacity: 0;
+    margin-right: 15px;
+    font-family: var(--font-family);
+    transition: opacity 0.1s;
+}
+
+.menu-btn:hover .selector {
+    opacity: 1;
+}
+
+.version-text {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-size: 1.5rem;
+    color: #888;
+    z-index: 50;
+}
+
+.copyright-text {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    font-size: 1.5rem;
+    color: #888;
+    z-index: 50;
+}
+
+/* Typography */
+h1.game-title {
+    font-size: 6rem;
+    letter-spacing: 5px;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 5px rgba(255,255,255,0.3);
+}
+
+#win-screen {
+    background-color: #000;
+}
+
+.time-transition {
+    font-size: 8rem;
+    font-family: 'Courier New', Courier, monospace;
+    color: #fff;
+    text-shadow: 0 0 10px #fff;
+    margin-bottom: 20px;
+}
+
+#win-subtitle {
+    font-size: 2rem;
+    color: #aaa;
+    animation: fadeIn 2s forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.subtitle {
+    font-size: 2rem;
+    margin-bottom: 3rem;
+    color: #aaa;
+}
+
+/* Main Menu Buttons & Backgrounds */
+#menu-cats-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.cat-wrapper {
+    position: absolute;
+    z-index: 20;
+    transition: left 0.5s ease-in-out;
+}
+
+.cat-wrapper .cat-sprite {
+    position: relative;
+    height: 100%;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.menu-cat-sprite {
+    position: absolute;
+    bottom: 0;
+    height: 80%;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity 0.5s;
+    filter: brightness(0.3) contrast(1.2);
+}
+
+.menu-cat-sprite.visible {
+    opacity: 0.8;
+}
+
+.menu-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: var(--font-family);
+    font-size: 2.5rem;
+    cursor: pointer;
+    margin: 10px 0;
+    transition: opacity 0.3s;
+}
+
+.map-cat-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: red;
+    border-radius: 50%;
+    box-shadow: 0 0 10px red;
+    animation: blink 1.5s infinite;
+    z-index: 15;
+}
+
+.cam-btn:hover {
+    color: var(--accent-color);
+    text-shadow: 0 0 10px var(--accent-color);
+}
+
+.menu-btn:disabled {
+    color: #555;
+    cursor: not-allowed;
+    text-shadow: none;
+}
+
+.overlay-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0,0,0,0.85);
+    border: 2px solid var(--accent-color);
+    padding: 30px;
+    z-index: 110;
+    text-align: center;
+    width: 400px;
+}
+
+.overlay-panel h2 {
+    font-size: 3rem;
+    color: var(--accent-color);
+    margin-bottom: 20px;
+}
+
+.toggles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.toggle-item input {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.small-btn {
+    font-size: 2rem;
+}
+
+/* Global UI */
+#global-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 40;
+}
+
+.time-display {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 3rem;
+    text-align: right;
+}
+
+.night-display {
+    font-size: 1.5rem;
+    color: #aaa;
+}
+
+.power-display {
+    position: absolute;
+    bottom: 160px;
+    left: 30px;
+    font-size: 2rem;
+}
+
+.usage-meter {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bar {
+    display: inline-block;
+    width: 15px;
+    height: 25px;
+    background-color: #333;
+    margin-left: 5px;
+}
+
+.bar.active {
+    background-color: #0f0;
+}
+.bar.active:nth-child(3), .bar.active:nth-child(4) {
+    background-color: #ff0;
+}
+.bar.active:nth-child(5) {
+    background-color: #f00;
+}
+
+/* Office & Room Backgrounds */
+.room-background {
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: relative;
+    background-color: #000;
+    transition: background-image 0.1s;
+}
+
+.office-bg {
+    /* Placeholder fallback */
+    background-image: radial-gradient(circle, #333 0%, #000 80%);
+}
+
+/* Action Buttons */
+.btn-action {
+    position: absolute;
+    padding: 15px 30px;
+    background-color: rgba(200, 0, 0, 0.4);
+    border: 2px solid rgba(255, 0, 0, 0.8);
+    color: #fff;
+    font-family: var(--font-family);
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 50;
+    pointer-events: auto;
+    transition: all 0.2s;
+}
+
+.btn-action:hover {
+    background-color: rgba(255, 0, 0, 0.6);
+}
+
+.btn-action:active {
+    transform: scale(0.95);
+}
+
+.btn-action:disabled {
+    background-color: #555 !important;
+    color: #888 !important;
+    border-color: #444 !important;
+    cursor: not-allowed;
+}
+
+#btn-turn-around {
+    background-color: rgba(255, 0, 0, 0.6);
+}
+
+.btn-action.active {
+    background-color: #fff;
+    color: #000;
+    border-color: #fff;
+}
+
+.bottom-left {
+    bottom: 20px;
+    left: 20px;
+}
+
+.bottom-right {
+    bottom: 20px;
+    right: 20px;
+}
+
+.audio-btn {
+    top: 100px;
+    left: 30px;
+    background-color: rgba(0, 100, 200, 0.4);
+    border: 2px solid rgba(0, 150, 255, 0.8);
+}
+
+.audio-btn:hover {
+    background-color: rgba(0, 150, 255, 0.6);
+}
+
+.audio-btn:disabled {
+    background-color: rgba(100, 100, 100, 0.4);
+    border-color: rgba(150, 150, 150, 0.8);
+    color: #888;
+    cursor: not-allowed;
+}
+
+/* Office & Desk */
+#desk-sprite {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#office-cat-sprite {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 60%;
+    object-fit: contain;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+#office-cat-sprite.visible {
+    opacity: 1;
+}
+
+/* Gun Sprite */
+#gun-sprite {
+    position: absolute;
+    bottom: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 70%;
+    object-fit: contain;
+    z-index: 60;
+    pointer-events: none;
+    transition: bottom 0.05s ease-out;
+}
+
+#gun-sprite.shooting {
+    bottom: -5%;
+}
+
+/* Light overlay to show the hallway is illuminated */
+.light-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(255,255,220,0.4) 0%, rgba(0,0,0,0) 80%);
+    z-index: 4;
+    pointer-events: none;
+}
+
+/* Camera UI */
+.btn-monitor {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 40px;
+    background-color: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.5);
+    color: #fff;
+    font-family: var(--font-family);
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 50;
+    pointer-events: auto;
+    transition: background-color 0.2s;
+}
+
+.btn-monitor:hover {
+    background-color: rgba(255,255,255,0.4);
+}
+
+.btn-monitor:disabled {
+    background-color: rgba(100,100,100,0.4) !important;
+    border-color: rgba(150,150,150,0.5) !important;
+    color: #888 !important;
+    cursor: not-allowed !important;
+}
+
+.camera-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 30;
+}
+
+.camera-rec {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.red-dot {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+}
+
+.camera-name {
+    position: absolute;
+    top: 30px;
+    right: 250px;
+    font-size: 2.5rem;
+    background: rgba(0,0,0,0.5);
+    padding: 5px 15px;
+    border: 1px solid #fff;
+}
+
+/* Map */
+.camera-map {
+    position: absolute;
+    bottom: 100px;
+    right: 30px;
+    width: 300px;
+    height: 300px;
+    background: rgba(0,20,0,0.3);
+    border: 2px solid rgba(255,255,255,0.5);
+    pointer-events: auto;
+}
+
+.map-bg {
+    width: 100%;
+    height: 100%;
+    /* We could add a blueprint image here */
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(255,255,255,0.1) 20px),
+                      repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(255,255,255,0.1) 20px);
+}
+
+.cam-btn {
+    position: absolute;
+    width: 50px;
+    height: 30px;
+    background-color: #333;
+    border: 1px solid #fff;
+    color: #fff;
+    font-family: var(--font-family);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+}
+
+.cam-btn.active {
+    background-color: #0a0;
+}
+
+/* Game Over */
+#game-over-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+}
+
+#game-over-screen .game-title {
+    z-index: 101;
+    color: #f00;
+}
+
+/* Dynamic Sprite in Camera */
+#camera-cat-sprite {
+    position: absolute;
+    object-fit: contain;
+    /* Defaults - overridden by JS */
+    bottom: 10%;
+    left: 40%;
+    height: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+
+/* Jumpscare */
+#jumpscare-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    background-color: #000;
+    animation: zoomInJumpscare 1.5s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards;
+}
+
+#jumpscare-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: shake 0.05s infinite;
+}
+
+@keyframes zoomInJumpscare {
+    0% { transform: scale(1); filter: brightness(1); }
+    100% { transform: scale(1.15); filter: brightness(1.3); }
+}
+
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+@keyframes shake {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-30px, 30px) rotate(-4deg); }
+    50% { transform: translate(30px, -30px) rotate(4deg); }
+    75% { transform: translate(-30px, -30px) rotate(-2deg); }
+    100% { transform: translate(30px, 30px) rotate(2deg); }
+}
+
+.turn-effect {
+    animation: fast-pan 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes fast-pan {
+    0% { filter: blur(0px); transform: scale(1); }
+    50% { filter: blur(15px) brightness(0.5); transform: scale(1.05); }
+    100% { filter: blur(0px); transform: scale(1); }
+}

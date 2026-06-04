@@ -1,0 +1,14 @@
+{
+  "name": "five-night-at-gro",
+  "version": "1.0.0",
+  "description": "Un jeu web d'horreur de survie statique de type 'Five Nights at Freddy's', conçu pour être facilement personnalisé avec vos propres chats.",
+  "scripts": {
+    "dev": "vite",
+    "start": "npm run dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.1.0"
+  }
+}
